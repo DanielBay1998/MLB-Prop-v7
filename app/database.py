@@ -24,3 +24,6 @@ AsyncSessionLocal = sessionmaker(
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
+
+async def init_models():
+    return None
