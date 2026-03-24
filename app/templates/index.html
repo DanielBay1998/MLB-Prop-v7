@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="app-shell mx-auto max-w-md pb-32 md:max-w-6xl md:px-6 md:pb-16">
+  <header class="mobile-header sticky top-0 z-40 px-4 pt-4 pb-3 md:rounded-b-[2rem] md:px-6">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="brand-badge">PP</div>
+        <div>
+          <div class="text-[11px] uppercase tracking-[0.24em] text-emerald-300/85">Daily MLB board</div>
+          <h1 class="text-xl font-semibold md:text-2xl">Prop Picks</h1>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="/docs" class="icon-chip">API</a>
+        <div class="icon-chip">⚙</div>
+      </div>
+    </div>
+
+    <div class="mt-4 grid grid-cols-3 gap-2 rounded-[1.4rem] border border-white/10 bg-white/5 p-2 text-center text-xs backdrop-blur-md md:max-w-md">
+      <div>
+        <div class="text-slate-400">Best bets</div>
+        <div class="mt-1 text-lg font-semibold text-white">{{ best_bets|length }}</div>
+      </div>
+      <div>
+        <div class="text-slate-400">Props</div>
+        <div class="mt-1 text-lg font-semibold text-white">{{ predictions|length }}</div>
+      </div>
+      <div>
+        <div class="text-slate-400">Games</div>
+        <div class="mt-1 text-lg font-semibold text-white">{{ games|length }}</div>
+      </div>
+    </div>
+
+    <nav class="mt-4 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+      <button data-tab="dashboard" class="story-chip is-active">For You</button>
+      <button data-tab="bestbets" class="story-chip">Best Bets</button>
+      <button data-tab="props" class="story-chip">Props</button>
+      <button data-tab="games" class="story-chip">Games</button>
+      <button data-tab="deploy" class="story-chip">Deploy</button>
+    </nav>
+  </header>
+
+  <section id="tab-dashboard" class="tab-panel px-4 pt-4 md:px-0 md:pt-6">
+    <div class="grid gap-4 md:grid-cols-[1.1fr_.9fr]">
+      <div class="space-y-4">
+        <article class="hero-card">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="section-kicker">Featured card</div>
+              <h2 class="mt-2 max-w-xs text-3xl font-semibold leading-tight">A mobile betting-app look with your own MLB model under it.</h2>
+              <p class="mt-3 max-w-md text-sm leading-6 text-slate-300">PrizePicks-inspired layout, but built around your schedule sync, live odds, training jobs, lineup confirmation, park factors, and weather-aware projections.</p>
+            </div>
+            <div class="mini-phone hidden md:block">
+              <div class="mini-phone-screen">
+                {% set hero = best_bets[0] if best_bets else None %}
+                <div class="flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-slate-400"><span>Tonight</span><span>Top Edge</span></div>
+                {% if hero %}
+                <div class="mt-3 rounded-[1.3rem] border border-emerald-400/20 bg-gradient-to-br from-emerald-400/15 to-emerald-300/5 p-4">
+                  <div class="text-xs text-slate-300">{{ hero.player.full_name }}</div>
+                  <div class="mt-1 text-2xl font-semibold">{{ hero.recommended_side|upper }} {{ hero.line }}</div>
+                  <div class="text-sm text-slate-400">{{ hero.market|replace('_', ' ')|title }}</div>
+                  <div class="mt-4 flex items-end justify-between">
+                    <div>
+                      <div class="text-3xl font-bold text-emerald-300">{{ '%.1f'|format(hero.edge_pct) }}%</div>
+                      <div class="text-xs text-slate-400">edge</div>
+                    </div>
+                    <div class="rounded-full bg-slate-950/70 px-3 py-1 text-xs text-emerald-200">{{ '%.0f'|format((hero.cover_probability or 0)*100) }}% cover</div>
+                  </div>
+                </div>
+                {% else %}
+                <div class="mt-3 rounded-[1.3rem] border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Run setup and ingest odds to populate your board.</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="promo-card">
+          <div>
+            <div class="section-kicker">Quick actions</div>
+            <h3 class="mt-2 text-xl font-semibold">Refresh the board</h3>
+          </div>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <a class="action-tile" href="/api/jobs/schedule-sync" target="_blank"><span>Sync schedule</span><strong>probables + slate</strong></a>
+            <a class="action-tile" href="/api/jobs/odds-ingest" target="_blank"><span>Pull odds</span><strong>sportsbook lines</strong></a>
+            <a class="action-tile" href="/api/context/refresh" target="_blank"><span>Refresh context</span><strong>lineups / weather / parks</strong></a>
+            <a class="action-tile" href="/api/jobs/models/train" target="_blank"><span>Train models</span><strong>market-specific outputs</strong></a>
+          </div>
+        </article>
+
+        <article class="surface-card">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="section-kicker">Top picks</div>
+              <h3 class="mt-1 text-xl font-semibold">Best bets tonight</h3>
+            </div>
+            <button data-tab="bestbets" class="text-sm text-emerald-300">View all</button>
+          </div>
+          <div class="mt-4 space-y-3">
+            {% for row in best_bets[:4] %}
+            <article class="pick-card">
+              <div class="flex items-center gap-3">
+                <div class="player-avatar">{{ row.player.full_name[:1] }}</div>
+                <div class="min-w-0 flex-1">
+                  <div class="truncate text-base font-semibold text-white">{{ row.player.full_name }}</div>
+                  <div class="truncate text-xs text-slate-400">{{ row.game.away_team }} @ {{ row.game.home_team }} · {{ row.market|replace('_', ' ')|title }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="pick-side">{{ row.recommended_side|upper }} {{ row.line }}</div>
+                  <div class="mt-1 text-xs text-emerald-300">{{ '%.1f'|format(row.edge_pct) }}% edge</div>
+                </div>
+              </div>
+              <div class="mt-3 flex items-center justify-between text-xs text-slate-400">
+                <span>{{ row.sportsbook }}</span>
+                <span>{{ '%.0f'|format((row.cover_probability or 0)*100) }}% cover · {{ row.confidence_tier }}</span>
+              </div>
+            </article>
+            {% else %}
+            <div class="empty-card">No best bets yet. Run the data pipeline to fill this feed.</div>
+            {% endfor %}
+          </div>
+        </article>
+      </div>
+
+      <div class="space-y-4">
+        <article class="surface-card">
+          <div class="section-kicker">Today’s slate</div>
+          <h3 class="mt-1 text-xl font-semibold">Games and context</h3>
+          <div class="mt-4 space-y-3">
+            {% for game in games[:5] %}
+            <article class="game-tile">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-semibold text-white">{{ game.away_team }} @ {{ game.home_team }}</div>
+                  <div class="mt-1 text-xs text-slate-400">{{ game.probable_away_pitcher or 'TBD' }} vs {{ game.probable_home_pitcher or 'TBD' }}</div>
+                </div>
+                <div class="status-pill {{ 'status-live' if game.lineup_confirmed else 'status-muted' }}">{{ 'Confirmed' if game.lineup_confirmed else 'Projected' }}</div>
+              </div>
+              <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div class="context-chip"><span>Park</span><strong>{{ game.venue_name or 'TBA' }}</strong></div>
+                <div class="context-chip"><span>Weather</span><strong>{{ game.weather_summary or 'Pending' }}</strong></div>
+              </div>
+            </article>
+            {% else %}
+            <div class="empty-card">No games loaded yet.</div>
+            {% endfor %}
+          </div>
+        </article>
+
+        <article class="surface-card">
+          <div class="section-kicker">Under the hood</div>
+          <h3 class="mt-1 text-xl font-semibold">Production stack</h3>
+          <div class="mt-4 grid gap-3">
+            <div class="infra-row"><span>Frontend</span><strong>Mobile-first Jinja + Tailwind</strong></div>
+            <div class="infra-row"><span>API</span><strong>FastAPI + async SQLAlchemy</strong></div>
+            <div class="infra-row"><span>Infra</span><strong>Postgres + Redis + Celery</strong></div>
+            <div class="infra-row"><span>Models</span><strong>Trainable per-market estimators</strong></div>
+            <div class="infra-row"><span>Deploy</span><strong>Render blueprint + health checks</strong></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-bestbets" class="tab-panel hidden px-4 pt-4 md:px-0 md:pt-6">
+    <div class="space-y-4">
+      <div class="flex items-end justify-between gap-3">
+        <div>
+          <div class="section-kicker">Best bets board</div>
+          <h2 class="mt-1 text-2xl font-semibold">Your strongest plays</h2>
+        </div>
+        <div class="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs text-emerald-200 md:block">ranked by edge + cover% + confidence</div>
+      </div>
+      <div class="space-y-3">
+        {% for row in best_bets %}
+        <article class="bet-feed-card">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="truncate text-lg font-semibold text-white">{{ row.player.full_name }}</div>
+              <div class="truncate text-sm text-slate-400">{{ row.game.away_team }} @ {{ row.game.home_team }}</div>
+            </div>
+            <div class="edge-pill">{{ '%.1f'|format(row.edge_pct) }}%</div>
+          </div>
+          <div class="mt-4 rounded-[1.2rem] bg-slate-950/65 p-4">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-xs uppercase tracking-[0.18em] text-slate-400">{{ row.market|replace('_', ' ')|title }}</div>
+                <div class="mt-1 text-2xl font-semibold text-white">{{ row.recommended_side|upper }} {{ row.line }}</div>
+              </div>
+              <div class="text-right text-sm text-slate-300">
+                <div>Proj {{ '%.2f'|format(row.projected_value) }}</div>
+                <div>{{ '%.0f'|format((row.cover_probability or 0)*100) }}% cover</div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 grid grid-cols-3 gap-2 text-xs">
+            <div class="context-chip"><span>Book</span><strong>{{ row.sportsbook }}</strong></div>
+            <div class="context-chip"><span>Edge</span><strong>{{ '%.2f'|format(row.edge_abs) }}</strong></div>
+            <div class="context-chip"><span>Confidence</span><strong>{{ row.confidence_tier }}</strong></div>
+          </div>
+          <p class="mt-3 text-sm leading-6 text-slate-300">{{ row.rationale }}</p>
+        </article>
+        {% else %}
+        <div class="empty-card">No best bets available yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-props" class="tab-panel hidden px-4 pt-4 md:px-0 md:pt-6">
+    <div class="space-y-4">
+      <div>
+        <div class="section-kicker">Props feed</div>
+        <h2 class="mt-1 text-2xl font-semibold">All model projections</h2>
+      </div>
+      <div class="space-y-3">
+        {% for pred in predictions %}
+        <article class="pick-card">
+          <div class="flex items-center gap-3">
+            <div class="player-avatar">{{ pred.player.full_name[:1] }}</div>
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-base font-semibold text-white">{{ pred.player.full_name }}</div>
+              <div class="truncate text-xs text-slate-400">{{ pred.game.away_team }} @ {{ pred.game.home_team }} · {{ pred.market|replace('_', ' ')|title }}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-base font-semibold text-sky-300">{{ '%.2f'|format(pred.projected_value) }}</div>
+              <div class="mt-1 text-xs {{ 'text-emerald-300' if pred.edge_pct >= 0 else 'text-rose-300' }}">{{ '%.1f'|format(pred.edge_pct) }}%</div>
+            </div>
+          </div>
+          <div class="mt-3 grid grid-cols-3 gap-2 text-xs">
+            <div class="context-chip"><span>Line</span><strong>{{ '%.1f'|format(pred.line) }}</strong></div>
+            <div class="context-chip"><span>Confidence</span><strong>{{ '%.0f'|format(pred.confidence) }}</strong></div>
+            <div class="context-chip"><span>Model</span><strong>{{ pred.model_version or 'active' }}</strong></div>
+          </div>
+          <p class="mt-3 text-sm leading-6 text-slate-300">{{ pred.rationale }}</p>
+        </article>
+        {% else %}
+        <div class="empty-card">No predictions generated yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-games" class="tab-panel hidden px-4 pt-4 md:px-0 md:pt-6">
+    <div class="space-y-4">
+      <div>
+        <div class="section-kicker">Games</div>
+        <h2 class="mt-1 text-2xl font-semibold">Today’s slate</h2>
+      </div>
+      <div class="grid gap-3 md:grid-cols-2">
+        {% for game in games %}
+        <article class="surface-card">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-lg font-semibold text-white">{{ game.away_team }} @ {{ game.home_team }}</div>
+              <div class="mt-1 text-sm text-slate-400">{{ game.game_date }}</div>
+            </div>
+            <div class="status-pill {{ 'status-live' if game.lineup_confirmed else 'status-muted' }}">{{ 'Lineups in' if game.lineup_confirmed else 'Projected' }}</div>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-2 text-sm">
+            <div class="context-chip"><span>Away SP</span><strong>{{ game.probable_away_pitcher or 'TBD' }}</strong></div>
+            <div class="context-chip"><span>Home SP</span><strong>{{ game.probable_home_pitcher or 'TBD' }}</strong></div>
+            <div class="context-chip"><span>Venue</span><strong>{{ game.venue_name or 'TBA' }}</strong></div>
+            <div class="context-chip"><span>Weather</span><strong>{{ game.weather_summary or 'Pending' }}</strong></div>
+          </div>
+        </article>
+        {% else %}
+        <div class="empty-card">No games loaded.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-deploy" class="tab-panel hidden px-4 pt-4 md:px-0 md:pt-6">
+    <div class="surface-card">
+      <div class="section-kicker">Deploy</div>
+      <h2 class="mt-1 text-2xl font-semibold">One-click Render setup</h2>
+      <div class="mt-4 grid gap-3 md:grid-cols-2">
+        <div class="infra-row"><span>Repo</span><strong>Push zip contents to GitHub</strong></div>
+        <div class="infra-row"><span>Blueprint</span><strong>Render reads render.yaml</strong></div>
+        <div class="infra-row"><span>Services</span><strong>Web + worker + cron + Postgres + Key Value</strong></div>
+        <div class="infra-row"><span>Health</span><strong>/healthz wired for checks</strong></div>
+      </div>
+      <div class="mt-5 rounded-[1.25rem] border border-white/10 bg-slate-950/60 p-4 text-sm leading-7 text-slate-300">
+        Create a GitHub repo, push the project, then in Render choose <span class="text-white">New + → Blueprint</span> and select the repo. Add <span class="text-white">ODDS_API_KEY</span> if you want live odds and deploy.
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="bottom-nav md:hidden">
+  <button data-tab="dashboard" class="bottom-nav-btn is-active"><span>🏠</span><small>Home</small></button>
+  <button data-tab="bestbets" class="bottom-nav-btn"><span>🔥</span><small>Bets</small></button>
+  <button data-tab="props" class="bottom-nav-btn"><span>📈</span><small>Props</small></button>
+  <button data-tab="games" class="bottom-nav-btn"><span>⚾</span><small>Games</small></button>
+  <button data-tab="deploy" class="bottom-nav-btn"><span>🚀</span><small>Deploy</small></button>
+</nav>
+{% endblock %}

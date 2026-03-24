@@ -1,0 +1,172 @@
+services:
+  - type: web
+    name: mlb-prop-predictor-web
+    runtime: python
+    plan: starter
+    autoDeploy: false
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: python scripts/render_setup.py
+    startCommand: bash -lc "python -m app.bootstrap && gunicorn app.main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-2} --timeout 120"
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: APP_NAME
+        value: MLB Prop Predictor Pro
+      - key: ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mlb-prop-predictor-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+      - key: RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+      - key: CACHE_TTL_SECONDS
+        value: 900
+      - key: WEB_CONCURRENCY
+        value: 2
+      - key: SEED_DEMO_DATA
+        value: true
+      - key: TRAIN_MODELS_ON_BOOT
+        value: true
+      - key: SYNC_SCHEDULE_ON_BOOT
+        value: false
+      - key: INGEST_ODDS_ON_BOOT
+        value: false
+      - key: ODDS_API_KEY
+        sync: false
+
+  - type: worker
+    name: mlb-prop-predictor-worker
+    runtime: python
+    plan: starter
+    autoDeploy: false
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash -lc "python -m app.bootstrap && celery -A jobs.celery_app.celery_app worker --loglevel=info --concurrency=2"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: APP_NAME
+        value: MLB Prop Predictor Pro
+      - key: ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mlb-prop-predictor-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+      - key: RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+      - key: CACHE_TTL_SECONDS
+        value: 900
+      - key: ODDS_API_KEY
+        sync: false
+
+  - type: cron
+    name: mlb-prop-predictor-schedule-cron
+    runtime: python
+    plan: starter
+    autoDeploy: false
+    schedule: "*/30 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/run_job.py schedule-sync
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mlb-prop-predictor-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+      - key: RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+
+  - type: cron
+    name: mlb-prop-predictor-context-cron
+    runtime: python
+    plan: starter
+    autoDeploy: false
+    schedule: "*/20 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/run_job.py refresh-context
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mlb-prop-predictor-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+      - key: RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+
+  - type: cron
+    name: mlb-prop-predictor-models-cron
+    runtime: python
+    plan: starter
+    autoDeploy: false
+    schedule: "15 9 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/run_job.py train-models
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mlb-prop-predictor-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+      - key: RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: mlb-prop-predictor-kv
+          property: connectionString
+
+  - type: keyvalue
+    name: mlb-prop-predictor-kv
+    plan: free
+    ipAllowList: []
+
+databases:
+  - name: mlb-prop-predictor-db
+    plan: free
+    databaseName: mlb_props
+    user: mlb_props_user
+    ipAllowList: []
