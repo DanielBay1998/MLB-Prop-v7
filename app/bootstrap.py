@@ -1,13 +1,7 @@
-from __future__ import annotations
+# Temporary bootstrap (no DB init for now)
 
-import asyncio
-
-from app.database import init_models
-
-
-async def bootstrap() -> None:
-    await init_models()
-
+def main():
+    print("Bootstrap complete")
 
 if __name__ == "__main__":
-    asyncio.run(bootstrap())
+    main()
