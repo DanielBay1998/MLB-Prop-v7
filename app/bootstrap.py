@@ -1,7 +1,7 @@
-# Temporary bootstrap (no DB init for now)
+# Minimal bootstrap (no DB init)
 
 def main():
-    print("Bootstrap complete")
+    print("App starting...")
 
 if __name__ == "__main__":
     main()
