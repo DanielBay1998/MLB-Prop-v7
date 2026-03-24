@@ -26,4 +26,6 @@ async def get_db():
         yield session
 
 async def init_models():
-    return None
+    from app.models import Game, Player, PropPrediction, SportsbookLine, ModelArtifact
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
