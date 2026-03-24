@@ -19,3 +19,4 @@ pybaseball>=2.2.7
 playwright>=1.54
 python-dateutil>=2.9
 gunicorn>=23.0
+psycopg2-binary
